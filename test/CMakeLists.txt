@@ -12,6 +12,6 @@ target_link_libraries("${PROJECT_NAME}" PRIVATE Zut::ZxCvt)
 if(MSVC)
     target_compile_options("${PROJECT_NAME}" PRIVATE /W4)
 else()
-    target_compile_options("${PROJECT_NAME}" PRIVATE -Wextra)
+    target_compile_options("${PROJECT_NAME}" PRIVATE -Wall -Wextra)
 endif()
 

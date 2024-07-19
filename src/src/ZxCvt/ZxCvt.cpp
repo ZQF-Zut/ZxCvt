@@ -11,53 +11,53 @@
 
 namespace ZQF
 {
-    auto ZxCvt::ReSize(size_t nBytes, bool isSlotB) -> uint8_t*
-    {
-        if (isSlotB)
-        {
-            if (m_nMemBBytes < nBytes)
-            {
-                m_upMemB = std::make_unique_for_overwrite<uint8_t[]>(nBytes);
-                m_nMemBBytes = nBytes;
-            }
-
-            return m_upMemB.get();
-        }
-        else
-        {
-            if (m_nMemABytes < nBytes)
-            {
-                m_upMemA = std::make_unique_for_overwrite<uint8_t[]>(nBytes);
-                m_nMemABytes = nBytes;
-            }
-
-            return m_upMemA.get();
-        }
-    }
-
 #ifdef _WIN32
     auto ZxCvt::UTF16LEToMBCS(const std::u16string_view u16Str, const size_t nCodePage, bool isSlotB) -> std::string_view
     {
-        m_eError = ZxCvt::LastError::NOT_ERROR;
+        // if empty just return
         if (u16Str.empty()) { return std::string_view{ "", 0 }; }
+
+        // resiz buffer
+        const auto buffer_bytes = ((u16Str.size() * sizeof(char16_t)) * 2) + 1;
+        char* buffer_ptr = this->ReSize<char*>(buffer_bytes, isSlotB);
+
+        // cvt
         BOOL not_all_cvt = TRUE;
-        const size_t buffer_bytes = ((u16Str.size() * sizeof(char16_t)) * 2) + 1;
-        auto cvt_buffer_ptr = reinterpret_cast<char*>(this->ReSize(buffer_bytes, isSlotB));
-        const auto bytes_real = static_cast<size_t>(::WideCharToMultiByte(static_cast<UINT>(nCodePage), 0, reinterpret_cast<const wchar_t*>(u16Str.data()), static_cast<int>(u16Str.size()), cvt_buffer_ptr, static_cast<int>(buffer_bytes), nullptr, &not_all_cvt));
-        if (not_all_cvt == TRUE) { m_eError = ZxCvt::LastError::ERROR_NOT_ALL_CVT; }
-        cvt_buffer_ptr[bytes_real] = {};
-        return std::string_view{ cvt_buffer_ptr, bytes_real };
+        const auto bytes_written = static_cast<size_t>(::WideCharToMultiByte(static_cast<UINT>(nCodePage), 0, reinterpret_cast<const wchar_t*>(u16Str.data()), static_cast<int>(u16Str.size()), buffer_ptr, static_cast<int>(buffer_bytes), nullptr, &not_all_cvt));
+
+        // check error or not
+        this->ErrorClear();
+        if (!bytes_written) { this->ErrorSet(ZxCvt::LastError::ERROR_CVT_FAILED); }
+        if (not_all_cvt) { this->ErrorSet(ZxCvt::LastError::ERROR_NOT_ALL_CVT); }
+
+        // make sure end with null char
+        buffer_ptr[bytes_written] = {};
+
+        // return string_view
+        return std::string_view{ buffer_ptr, bytes_written };
     }
 
     auto ZxCvt::MBCSToUTF16LE(const std::string_view msStr, const size_t nCodePage, bool isSlotB) -> std::u16string_view
     {
-        m_eError = ZxCvt::LastError::NOT_ERROR;
+        // if empty just return
         if (msStr.empty()) { return std::u16string_view{ u"", 0 }; }
+
+        // resiz buffer
         const auto buffer_size = ((msStr.size() * sizeof(char)) * 2) + 2;
-        auto cvt_buffer_ptr = reinterpret_cast<char16_t*>(this->ReSize(buffer_size, isSlotB));
-        const auto char_count_real = static_cast<size_t>(::MultiByteToWideChar(static_cast<UINT>(nCodePage), MB_ERR_INVALID_CHARS, msStr.data(), static_cast<int>(msStr.size()), reinterpret_cast<wchar_t*>(cvt_buffer_ptr), static_cast<int>(buffer_size)));
-        cvt_buffer_ptr[char_count_real] = {};
-        return std::u16string_view{ cvt_buffer_ptr, char_count_real };
+        char16_t* buffer_ptr = this->ReSize<char16_t*>(buffer_size, isSlotB);
+
+        // cvt
+        const auto chars_written = static_cast<size_t>(::MultiByteToWideChar(static_cast<UINT>(nCodePage), MB_ERR_INVALID_CHARS, msStr.data(), static_cast<int>(msStr.size()), reinterpret_cast<wchar_t*>(buffer_ptr), static_cast<int>(buffer_size)));
+
+        // check error or not
+        this->ErrorClear();
+        if (!chars_written) { this->ErrorSet(ZxCvt::LastError::ERROR_CVT_FAILED); }
+
+        // make sure end with null char
+        buffer_ptr[chars_written] = {};
+
+        // return string_view
+        return std::u16string_view{ buffer_ptr, chars_written };
     }
 
     auto ZxCvt::MBCSToMBCS(const std::string_view msStrA, const size_t nCodePageA, const size_t nCodePageB) -> std::string_view
@@ -102,7 +102,7 @@ namespace ZQF
         size_t input_bytes_remain = nSrcBytes;
         const size_t stastu = ::iconv(iconv_handle, &input_buffer, &input_bytes_remain, &out_buffer, &out_bytes_remain);
         ::iconv_close(iconv_handle);
-        if (stastu == static_cast<size_t>(-1)) { m_eError = ZxCvt::LastError::ERROR_NULL_CHARS; return 0; }
+        if (stastu == static_cast<size_t>(-1)) { m_eError = ZxCvt::LastError::ERROR_CVT_FAILED; return 0; }
         if (input_bytes_remain != 0) { m_eError = ZxCvt::LastError::ERROR_NOT_ALL_CVT; }
         if (out_bytes_remain < 1) { m_eError = ZxCvt::LastError::ERROR_OUT_OF_MEMORY; return 0; }
 
@@ -170,12 +170,22 @@ namespace ZQF
     {
         switch (m_eError)
         {
-        case ZQF::ZxCvt::ERROR_NULL_CHARS: return "ZxCvt: converted length is empty";
         case ZQF::ZxCvt::ERROR_NOT_ALL_CVT: return "ZxCvt: not all characters are converted";
-        case ZQF::ZxCvt::ERROR_INVALID_ENCODING: return "ZxCvt: invalid encoding";
         case ZQF::ZxCvt::ERROR_OUT_OF_MEMORY: return "ZxCvt: out of memory";
+        case ZQF::ZxCvt::ERROR_INVALID_ENCODING: return "ZxCvt: invalid encoding";
+        case ZQF::ZxCvt::ERROR_CVT_FAILED: return "ZxCvt: failed to convert string";
         }
 
         return "";
+    }
+
+    auto ZxCvt::ErrorClear() -> void
+    {
+        this->ErrorSet(ZxCvt::LastError::NOT_ERROR);
+    }
+
+    auto ZxCvt::ErrorSet(ZxCvt::LastError eError) -> void
+    {
+        m_eError = eError;
     }
 }

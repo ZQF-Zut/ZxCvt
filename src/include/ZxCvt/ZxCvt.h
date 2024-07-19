@@ -11,10 +11,10 @@ namespace ZQF
         enum LastError
         {
             NOT_ERROR,
-            ERROR_NULL_CHARS,
             ERROR_NOT_ALL_CVT,
-            ERROR_INVALID_ENCODING,
             ERROR_OUT_OF_MEMORY,
+            ERROR_INVALID_ENCODING,
+            ERROR_CVT_FAILED,
         };
     private:
         size_t m_nMemABytes{};
@@ -27,7 +27,10 @@ namespace ZQF
         ZxCvt() {}
 
     private:
-        auto ReSize(size_t nBytes, bool isSlotB) -> uint8_t*;
+        template<class T>
+        auto ReSize(size_t nBytes, bool isSlotB = false) -> T;
+        template <class T>
+        auto Ptr(bool isSlotB = false) const noexcept -> T;
 
     public:
         auto UTF16LEToMBCS(const std::u16string_view u16Str, const size_t nCodePage, bool isSlotB = false) -> std::string_view;
@@ -45,23 +48,52 @@ namespace ZQF
         auto NotError() const -> bool;
         auto GetError() const->std::string_view;
 
+    private:
+        auto ErrorClear() -> void;
+        auto ErrorSet(ZxCvt::LastError eError) -> void;
+
 #ifdef __linux__
     private:
         auto IConvConv(const void* cpSrc, size_t nSrcBytes, size_t nSrcCodePage, size_t nDestCodePage, const size_t nDestEleSize, bool isSlotB = false) -> size_t;
-
-        template <class T>
-        inline auto Ptr() const noexcept -> T
-        {
-            if constexpr (std::is_pointer_v<T>)
-            {
-                return reinterpret_cast<T>(m_upMemA.get());
-            }
-            else
-            {
-                static_assert(false, "ZxCvt::Ptr<T>(): not pointer type!");
-            }
-        }
 #endif
 
+
     };
+
+    template <class T>
+    auto ZxCvt::Ptr(bool isSlotB) const noexcept -> T
+    {
+        if constexpr (std::is_pointer_v<T>)
+        {
+            return isSlotB ? reinterpret_cast<T>(m_upMemB.get()) : reinterpret_cast<T>(m_upMemA.get());
+        }
+        else
+        {
+            static_assert(false, "ZxCvt::Ptr<T>(): not pointer type!");
+        }
+    }
+
+    template<class T>
+    auto ZxCvt::ReSize(size_t nBytes, bool isSlotB) -> T
+    {
+        if (isSlotB)
+        {
+            if (m_nMemBBytes < nBytes)
+            {
+                m_upMemB = std::make_unique_for_overwrite<uint8_t[]>(nBytes);
+                m_nMemBBytes = nBytes;
+            }
+        }
+        else
+        {
+            if (m_nMemABytes < nBytes)
+            {
+                m_upMemA = std::make_unique_for_overwrite<uint8_t[]>(nBytes);
+                m_nMemABytes = nBytes;
+            }
+        }
+
+        return this->Ptr<T>(isSlotB);
+    }
+
 }
