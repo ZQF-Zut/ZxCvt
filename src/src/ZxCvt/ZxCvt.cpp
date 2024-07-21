@@ -177,8 +177,6 @@ namespace ZQF
         case ZQF::ZxCvt::NOT_ERROR: return "";
         default: return "";
         }
-
-        return "";
     }
 
     auto ZxCvt::ErrorClear() -> void
