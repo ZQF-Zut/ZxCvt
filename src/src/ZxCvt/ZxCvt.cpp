@@ -65,8 +65,12 @@ namespace ZQF
         return this->UTF16LEToMBCS(this->MBCSToUTF16LE(msStrA, nCodePageA, true), nCodePageB, false);
     }
 #elif __linux__
-    static auto IConvOpen(const size_t nSrcCodePage, const size_t nDestCodePage) -> iconv_t
+    auto ZxCvt::IConvConv(const void* cpSrc, const size_t nSrcBytes, const size_t nSrcCodePage, const size_t nDestCodePage, const size_t nDestEleSize, bool isSlotB) -> size_t
     {
+        m_eError = ZxCvt::LastError::NOT_ERROR;
+
+        if (nSrcBytes == 0) { return 0; }
+
         auto code_page_to_str = [](size_t nCodePage, char* pBuffer) -> void
             {
                 switch (nCodePage)
@@ -81,19 +85,10 @@ namespace ZQF
         char dest_code_page_str_buffer[16];
         code_page_to_str(nDestCodePage, src_code_page_str_buffer);
         code_page_to_str(nSrcCodePage, dest_code_page_str_buffer);
-        return ::iconv_open(src_code_page_str_buffer, dest_code_page_str_buffer);
-    }
-
-    auto ZxCvt::IConvConv(const void* cpSrc, const size_t nSrcBytes, const size_t nSrcCodePage, const size_t nDestCodePage, const size_t nDestEleSize, bool isSlotB) -> size_t
-    {
-        m_eError = ZxCvt::LastError::NOT_ERROR;
-
-        if (nSrcBytes == 0) { return 0; }
-
-        const auto iconv_handle = IConvOpen(nSrcCodePage, nDestCodePage);
+        const auto  iconv_handle = ::iconv_open(src_code_page_str_buffer, dest_code_page_str_buffer);
         if (iconv_handle == iconv_t(-1)) { m_eError = ZxCvt::LastError::ERROR_INVALID_ENCODING; return 0; }
 
-        const size_t temp_buffer_bytes = (nSrcBytes * 2) + 2;
+        const size_t temp_buffer_bytes = (nSrcBytes * 4) + 2;
         uint8_t* temp_buffer_ptr = this->ReSize<uint8_t*>(temp_buffer_bytes, isSlotB);
 
         char* out_buffer = reinterpret_cast<char*>(temp_buffer_ptr);
