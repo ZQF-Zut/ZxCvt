@@ -40,7 +40,7 @@ auto main(void) -> int
         cvt.UTF8ToUTF16LE(u8"😈121😀哈哈哈，*(#Y*(藜");
         assert(cvt.NotError() == true);
 
-        auto xx =cvt.MBCSToMBCS(reinterpret_cast<const char*>("\x82\xB7\x82\xDD\x82\xDC\x82\xB9\x82\xF1"), 10086, 1008611);
+        [[maybe_unused]] auto xx =cvt.MBCSToMBCS(reinterpret_cast<const char*>("\x82\xB7\x82\xDD\x82\xDC\x82\xB9\x82\xF1"), 10086, 1008611);
 
         [[maybe_unused]] int x = 0;
 

@@ -73,7 +73,7 @@ namespace ZQF
                 {
                 case 65001: std::memcpy(pBuffer, "UTF-8", 6); break;
                 case 12000: std::memcpy(pBuffer, "UTF-16LE", 9); break;
-                default: ::snprintf(pBuffer, 15, "CP%d", nCodePage);
+                default: ::snprintf(pBuffer, 15, "CP%d", static_cast<int>(nCodePage));
                 }
             };
 
@@ -94,7 +94,7 @@ namespace ZQF
         if (iconv_handle == iconv_t(-1)) { m_eError = ZxCvt::LastError::ERROR_INVALID_ENCODING; return 0; }
 
         const size_t temp_buffer_bytes = (nSrcBytes * 2) + 2;
-        uint8_t* temp_buffer_ptr = this->ReSize(temp_buffer_bytes, isSlotB);
+        uint8_t* temp_buffer_ptr = this->ReSize<uint8_t*>(temp_buffer_bytes, isSlotB);
 
         char* out_buffer = reinterpret_cast<char*>(temp_buffer_ptr);
         size_t out_bytes_remain = temp_buffer_bytes;
@@ -174,6 +174,8 @@ namespace ZQF
         case ZQF::ZxCvt::ERROR_OUT_OF_MEMORY: return "ZxCvt: out of memory";
         case ZQF::ZxCvt::ERROR_INVALID_ENCODING: return "ZxCvt: invalid encoding";
         case ZQF::ZxCvt::ERROR_CVT_FAILED: return "ZxCvt: failed to convert string";
+        case ZQF::ZxCvt::NOT_ERROR: return "";
+        default: return "";
         }
 
         return "";
