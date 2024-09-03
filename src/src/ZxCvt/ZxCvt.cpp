@@ -38,7 +38,9 @@ namespace ZQF
                 error_msg
                     .append(u"ZxCvt::UTF16LEToMBCS(): Warning!!\n\t")
                     .append(u"Source: UTF-16   -> Str: ")
+                    .append(1, u'"')
                     .append(u16Str)
+                    .append(1, u'"')
                     .append(u" -> Chars: ")
                     .append(reinterpret_cast<const char16_t*>(std::to_wstring(u16Str.size()).c_str()))
                     .append(u"\n\t")
@@ -85,7 +87,9 @@ namespace ZQF
                 error_msg
                     .append("ZxCvt::MBCSToUTF16LE(): Warning!!\n\t")
                     .append("Source: MBCS     -> Str: ")
+                    .append(1, '"')
                     .append(msStr)
+                    .append(1, '"')
                     .append(" -> Bytes:")
                     .append(std::to_string(msStr.size()))
                     .append("\n\t")
