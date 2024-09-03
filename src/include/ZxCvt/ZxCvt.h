@@ -22,6 +22,7 @@ namespace ZQF
         std::unique_ptr<uint8_t[]> m_upMemA;
         std::unique_ptr<uint8_t[]> m_upMemB;
         ZxCvt::LastError m_eError{};
+        bool m_isPrintError{ true };
 
     public:
         ZxCvt() {}
@@ -47,6 +48,7 @@ namespace ZQF
     public:
         auto NotError() const -> bool;
         auto GetError() const->std::string_view;
+        auto DisablePrintError() -> void;
 
     private:
         auto ErrorClear() -> void;

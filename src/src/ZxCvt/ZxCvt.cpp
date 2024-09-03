@@ -3,6 +3,7 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <string>
 #elif __linux__
 #include <iconv.h>
 #include <cstring>
@@ -29,6 +30,30 @@ namespace ZQF
         this->ErrorClear();
         if (!bytes_written) { this->ErrorSet(ZxCvt::LastError::ERROR_CVT_FAILED); }
         if (not_all_cvt) { this->ErrorSet(ZxCvt::LastError::ERROR_NOT_ALL_CVT); }
+        if (m_isPrintError)
+        {
+            if (this->NotError() == false)
+            {
+                std::u16string error_msg;
+                error_msg
+                    .append(u"ZxCvt::UTF16LEToMBCS(): Warning!!\n\t")
+                    .append(u"Source: UTF-16   -> Str: ")
+                    .append(u16Str)
+                    .append(u" -> Chars: ")
+                    .append(reinterpret_cast<const char16_t*>(std::to_wstring(u16Str.size()).c_str()))
+                    .append(u"\n\t")
+                    .append(u"Target: CodePage -> ")
+                    .append(reinterpret_cast<const char16_t*>(std::to_wstring(nCodePage).c_str()))
+                    .append(u"\n\t")
+                    .append(u"Reason: ");
+
+                if (!bytes_written) { error_msg.append(u"failed to convert string!\n\n"); }
+                if (not_all_cvt) { error_msg.append(u"not all characters are converted!\n\n"); }
+
+                DWORD written{};
+                ::WriteConsoleW(::GetStdHandle(STD_ERROR_HANDLE), error_msg.data(), static_cast<DWORD>(error_msg.size()), &written, nullptr);
+            }
+        }
 
         // make sure end with null char
         buffer_ptr[bytes_written] = {};
@@ -52,6 +77,29 @@ namespace ZQF
         // check error or not
         this->ErrorClear();
         if (!chars_written) { this->ErrorSet(ZxCvt::LastError::ERROR_CVT_FAILED); }
+        if (m_isPrintError)
+        {
+            if (this->NotError() == false)
+            {
+                std::string error_msg;
+                error_msg
+                    .append("ZxCvt::MBCSToUTF16LE(): Warning!!\n\t")
+                    .append("Source: MBCS     -> Str: ")
+                    .append(msStr)
+                    .append(" -> Bytes:")
+                    .append(std::to_string(msStr.size()))
+                    .append("\n\t")
+                    .append("Target: CodePage -> ")
+                    .append(std::to_string(nCodePage))
+                    .append("\n\t")
+                    .append("Reason: ");
+
+                if (!chars_written) { error_msg.append("failed to convert string!\n\n"); }
+
+                DWORD written{};
+                ::WriteConsoleA(::GetStdHandle(STD_ERROR_HANDLE), error_msg.data(), static_cast<DWORD>(error_msg.size()), &written, nullptr);
+            }
+        }
 
         // make sure end with null char
         buffer_ptr[chars_written] = {};
@@ -182,5 +230,10 @@ namespace ZQF
     auto ZxCvt::ErrorSet(ZxCvt::LastError eError) -> void
     {
         m_eError = eError;
+    }
+
+    auto ZxCvt::DisablePrintError() -> void
+    {
+        m_isPrintError = false;
     }
 }
