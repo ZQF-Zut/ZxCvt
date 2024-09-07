@@ -7,6 +7,7 @@
 #elif __linux__
 #include <iconv.h>
 #include <cstring>
+#include <string>
 #endif
 
 
@@ -133,12 +134,26 @@ namespace ZQF
                 }
             };
 
+        auto fn_show_error = [this, nSrcCodePage, nDestCodePage, cpSrc, nSrcBytes]()
+            {
+                std::string error;
+                error
+                    .append("ZxCvt::IConvConv(): Warning!!\n\t")
+                    .append("Source: CodePage: ").append(std::to_string(nSrcCodePage))
+                    .append(", Data: ").append(reinterpret_cast<const char*>(cpSrc), nSrcBytes)
+                    .append(", Bytes: ").append(std::to_string(nSrcBytes)).append("\n\t")
+                    .append("Target: CodePage: ").append(std::to_string(nDestCodePage)).append("\n\t")
+                    .append("Reason: ").append(this->GetError()).append("\n\n");
+
+                ::perror(error.c_str());
+            };
+
         char src_code_page_str_buffer[16];
         char dest_code_page_str_buffer[16];
         code_page_to_str(nDestCodePage, src_code_page_str_buffer);
         code_page_to_str(nSrcCodePage, dest_code_page_str_buffer);
         const auto  iconv_handle = ::iconv_open(src_code_page_str_buffer, dest_code_page_str_buffer);
-        if (iconv_handle == iconv_t(-1)) { m_eError = ZxCvt::LastError::ERROR_INVALID_ENCODING; return 0; }
+        if (iconv_handle == iconv_t(-1)) { m_eError = ZxCvt::LastError::ERROR_INVALID_ENCODING; fn_show_error(); return 0; }
 
         const size_t temp_buffer_bytes = (nSrcBytes * 4) + 2;
         uint8_t* temp_buffer_ptr = this->ReSize<uint8_t*>(temp_buffer_bytes, isSlotB);
@@ -149,11 +164,11 @@ namespace ZQF
         size_t input_bytes_remain = nSrcBytes;
         const size_t stastu = ::iconv(iconv_handle, &input_buffer, &input_bytes_remain, &out_buffer, &out_bytes_remain);
         ::iconv_close(iconv_handle);
-        if (stastu == static_cast<size_t>(-1)) { m_eError = ZxCvt::LastError::ERROR_CVT_FAILED; return 0; }
-        if (input_bytes_remain != 0) { m_eError = ZxCvt::LastError::ERROR_NOT_ALL_CVT; }
-        if (out_bytes_remain < 1) { m_eError = ZxCvt::LastError::ERROR_OUT_OF_MEMORY; return 0; }
+        if (stastu == static_cast<size_t>(-1)) { m_eError = ZxCvt::LastError::ERROR_CVT_FAILED; fn_show_error(); return 0; }
+        if (input_bytes_remain != 0) { m_eError = ZxCvt::LastError::ERROR_NOT_ALL_CVT; fn_show_error(); }
+        if (out_bytes_remain < 1) { m_eError = ZxCvt::LastError::ERROR_OUT_OF_MEMORY; fn_show_error(); return 0; }
 
-        const size_t cvt_str_bytes = temp_buffer_bytes - out_bytes_remain;
+        const auto cvt_str_bytes{ temp_buffer_bytes - out_bytes_remain };
         out_buffer[cvt_str_bytes + 0] = {};
         out_buffer[cvt_str_bytes + 1] = {};
         return cvt_str_bytes / nDestEleSize;
@@ -217,10 +232,10 @@ namespace ZQF
     {
         switch (m_eError)
         {
-        case ZQF::ZxCvt::ERROR_NOT_ALL_CVT: return "ZxCvt: not all characters are converted";
-        case ZQF::ZxCvt::ERROR_OUT_OF_MEMORY: return "ZxCvt: out of memory";
-        case ZQF::ZxCvt::ERROR_INVALID_ENCODING: return "ZxCvt: invalid encoding";
-        case ZQF::ZxCvt::ERROR_CVT_FAILED: return "ZxCvt: failed to convert string";
+        case ZQF::ZxCvt::ERROR_NOT_ALL_CVT: return "not all characters are converted";
+        case ZQF::ZxCvt::ERROR_OUT_OF_MEMORY: return "out of memory";
+        case ZQF::ZxCvt::ERROR_INVALID_ENCODING: return "invalid encoding";
+        case ZQF::ZxCvt::ERROR_CVT_FAILED: return "convert failed";
         case ZQF::ZxCvt::NOT_ERROR: return "";
         default: return "";
         }
