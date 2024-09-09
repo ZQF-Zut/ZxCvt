@@ -36,7 +36,6 @@ auto main(void) -> int
     // "今天天气不" -> encoding: CP936
     const auto mbcs_to_mbcs_sv = cvt.MBCSToMBCS("\xBD\xF1\xCC\xEC\xCC\xEC\xC6\xF8\xB2\xBB", 936, 932);
     assert(std::string_view{ "\x8D\xA1\x93\x56\x93\x56\x9F\x83\x95\x73" } == mbcs_to_mbcs_sv);
-    return 0;
 }
 
 ```
