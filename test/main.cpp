@@ -1,7 +1,7 @@
 #include <print>
 #include <cassert>
 #include <iostream>
-#include <ZxCvt/ZxCvt.h>
+#include <Zut/ZxCvt.h>
 
 
 auto main(void) -> int
@@ -13,17 +13,17 @@ auto main(void) -> int
         auto try_cvt = [&cvt](const std::string_view msStr, const size_t nCodePage, const std::u8string_view u8Str, const std::u16string_view u16Str)
             {
                 assert(cvt.MBCSToUTF16LE(msStr, nCodePage) == u16Str);
-                assert(cvt.NotError() == true);
+                assert(cvt.GetErrorStatus() == false);
                 assert(cvt.UTF16LEToMBCS(u16Str, nCodePage) == msStr);
-                assert(cvt.NotError() == true);
+                assert(cvt.GetErrorStatus() == false);
                 assert(cvt.MBCSToUTF8(msStr, nCodePage) == reinterpret_cast<const char*>(u8Str.data()));
-                assert(cvt.NotError() == true);
+                assert(cvt.GetErrorStatus() == false);
                 assert(cvt.UTF8ToMBCS(u8Str, nCodePage) == msStr);
-                assert(cvt.NotError() == true);
+                assert(cvt.GetErrorStatus() == false);
                 assert(cvt.UTF8ToUTF16LE(u8Str) == u16Str);
-                assert(cvt.NotError() == true);
+                assert(cvt.GetErrorStatus() == false);
                 assert(cvt.UTF16LEToUTF8(u16Str) == reinterpret_cast<const char*>(u8Str.data()));
-                assert(cvt.NotError() == true);
+                assert(cvt.GetErrorStatus() == false);
             };
 
         try_cvt(reinterpret_cast<const char*>("\xBD\xF1\xCC\xEC\xCC\xEC\xC6\xF8\xB2\xBB\xB4\xED"), 936, u8"今天天气不错", u"今天天气不错");
@@ -31,15 +31,15 @@ auto main(void) -> int
         try_cvt(reinterpret_cast<const char*>("123"), 932, u8"123", u"123");
 
         cvt.MBCSToMBCS(reinterpret_cast<const char*>("\xBD\xF1\xCC\xEC\xCC\xEC\xC6\xF8\xB2\xBB\xB4\xED"), 936, 932);
-        assert(cvt.NotError() == false);
-        [[maybe_unused]] auto error = cvt.GetError();
+        assert(cvt.GetErrorStatus() == true);
+        [[maybe_unused]] auto error = cvt.GetLastErrorAsStr();
 
         cvt.MBCSToMBCS(reinterpret_cast<const char*>("\x82\xB7\x82\xDD\x82\xDC\x82\xB9\x82\xF1"), 932, 936);
-        assert(cvt.NotError() == true);
+        assert(cvt.GetErrorStatus() == false);
 
 
         [[maybe_unused]] auto cvtx = cvt.UTF8ToUTF16LE(u8"😈121😀哈哈哈，*(#Y*(藜");
-        assert(cvt.NotError() == true);
+        assert(cvt.GetErrorStatus() == false);
 
 
         std::string_view xxc = "\xBD\xF1\xCC\xEC\xCC\xEC\xC6\xF8\xB2\xBB\xB4\xED";
