@@ -9,7 +9,7 @@
 
 namespace ZQF::Zut
 {
-    auto ZxCvt::UTF16LEToMBCS(const std::u16string_view u16Str, const std::size_t nCodePage, const bool isSlotB) -> std::string_view
+    auto ZxCvt::UTF16LEToMBCS(const std::u16string_view u16Str, const std::size_t nCodePage) -> std::string_view
     {
         auto fn_print_error = [this, &u16Str, &nCodePage](std::u16string_view u16Msg)
         {
@@ -35,7 +35,7 @@ namespace ZQF::Zut
 
         // resiz buffer
         const auto buffer_bytes = ((u16Str.size() * sizeof(char16_t)) * 2) + 1;
-        char* buffer_ptr = this->ReSize<char*>(buffer_bytes, isSlotB);
+        char* buffer_ptr = this->ReSize<char*>(buffer_bytes, u16Str.data());
 
         // cvt
         BOOL not_all_cvt = TRUE;
@@ -53,7 +53,7 @@ namespace ZQF::Zut
         return std::string_view{ buffer_ptr, bytes_written };
     }
 
-    auto ZxCvt::MBCSToUTF16LE(const std::string_view msStr, const std::size_t nCodePage, const bool isSlotB) -> std::u16string_view
+    auto ZxCvt::MBCSToUTF16LE(const std::string_view msStr, const std::size_t nCodePage) -> std::u16string_view
     {
         auto fn_print_error = [this, &msStr, &nCodePage](std::string_view msMsg)
             {
@@ -79,7 +79,7 @@ namespace ZQF::Zut
 
         // resiz buffer
         const auto buffer_size = ((msStr.size() * sizeof(char)) * 2) + 2;
-        auto buffer_ptr = this->ReSize<char16_t*>(buffer_size, isSlotB);
+        auto buffer_ptr = this->ReSize<char16_t*>(buffer_size, msStr.data());
 
         // cvt
         const auto chars_written = static_cast<std::size_t>(::MultiByteToWideChar(static_cast<UINT>(nCodePage), MB_ERR_INVALID_CHARS, msStr.data(), static_cast<int>(msStr.size()), reinterpret_cast<wchar_t*>(buffer_ptr), static_cast<int>(buffer_size)));
@@ -97,7 +97,8 @@ namespace ZQF::Zut
 
     auto ZxCvt::MBCSToMBCS(const std::string_view msStrA, const std::size_t nCodePageA, const std::size_t nCodePageB) -> std::string_view
     {
-        return this->UTF16LEToMBCS(this->MBCSToUTF16LE(msStrA, nCodePageA, true), nCodePageB, false);
+        const auto u16_sv = this->MBCSToUTF16LE(msStrA, nCodePageA);
+        return this->UTF16LEToMBCS(u16_sv, nCodePageB);
     }
 }
 #elif __linux__
@@ -109,7 +110,7 @@ namespace ZQF::Zut
 
 namespace ZQF::Zut
 {
-    auto ZxCvt::IConvConv(const void* pSrc, const std::size_t nSrcBytes, const std::size_t nSrcCodePage, const std::size_t nDestCodePage, const std::size_t nDestEleBytes, const bool isSlotB) -> std::size_t
+    auto ZxCvt::IConvConv(const void* pSrc, const std::size_t nSrcBytes, const std::size_t nSrcCodePage, const std::size_t nDestCodePage, const std::size_t nDestEleBytes) -> std::size_t
     {
         auto fn_print_error = [this, nSrcCodePage, nDestCodePage, pSrc, nSrcBytes]()
             {
@@ -159,7 +160,7 @@ namespace ZQF::Zut
         }
 
         const auto tmp_buf_bytes{ (nSrcBytes * 4) + 2 };
-        auto* tmp_buf_ptr{ this->ReSize<std::uint8_t*>(tmp_buf_bytes, isSlotB) };
+        auto* tmp_buf_ptr{ this->ReSize<std::uint8_t*>(tmp_buf_bytes, pSrc) };
 
         // cvt string
         auto cvt_buf{ reinterpret_cast<char*>(tmp_buf_ptr) };
@@ -204,22 +205,22 @@ namespace ZQF::Zut
         return ele_cnt;
     }
 
-    auto ZxCvt::UTF16LEToMBCS(const std::u16string_view u16Str, const std::size_t nCodePage, const bool isSlotB) -> std::string_view
+    auto ZxCvt::UTF16LEToMBCS(const std::u16string_view u16Str, const std::size_t nCodePage) -> std::string_view
     {
-        const auto cvt_str_bytes{ this->IConvConv(u16Str.data(), u16Str.size() * sizeof(char16_t), 12000, nCodePage, sizeof(char), isSlotB) };
-        return { this->Ptr<char*>(), cvt_str_bytes };
+        const auto cvt_str_bytes{ this->IConvConv(u16Str.data(), u16Str.size() * sizeof(char16_t), 12000, nCodePage, sizeof(char)) };
+        return { this->Ptr<char*>(u16Str.data()), cvt_str_bytes };
     }
 
-    auto ZxCvt::MBCSToUTF16LE(const std::string_view msStr, const std::size_t nCodePage, const bool isSlotB) -> std::u16string_view
+    auto ZxCvt::MBCSToUTF16LE(const std::string_view msStr, const std::size_t nCodePage) -> std::u16string_view
     {
-        const auto cvt_str_bytes{ this->IConvConv(msStr.data(), msStr.size() * sizeof(char), nCodePage, 12000, sizeof(char16_t), isSlotB) };
-        return { this->Ptr<char16_t*>(), cvt_str_bytes };
+        const auto cvt_str_bytes{ this->IConvConv(msStr.data(), msStr.size() * sizeof(char), nCodePage, 12000, sizeof(char16_t)) };
+        return { this->Ptr<char16_t*>(msStr.data()), cvt_str_bytes };
     }
 
     auto ZxCvt::MBCSToMBCS(const std::string_view msStr, const std::size_t nCodePageA, const std::size_t nCodePageB) -> std::string_view
     {
         const auto cvt_str_bytes{ this->IConvConv(msStr.data(), msStr.size() * sizeof(char), nCodePageA, nCodePageB, sizeof(char)) };
-        return { this->Ptr<char*>(), cvt_str_bytes };
+        return { this->Ptr<char*>(msStr.data()), cvt_str_bytes };
     }
 }
 #endif
