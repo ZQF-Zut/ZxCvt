@@ -8,7 +8,7 @@ auto main(void) -> int
 {
     try
     {
-        ZQF::ZxCvt cvt;
+        ZxCvt cvt;
 
         auto try_cvt = [&cvt](const std::string_view msStr, const size_t nCodePage, const std::u8string_view u8Str, const std::u16string_view u16Str)
             {

@@ -3,7 +3,7 @@
 #include <string_view>
 
 
-namespace ZQF
+namespace ZQF::Zut
 {
     class ZxCvt
     {

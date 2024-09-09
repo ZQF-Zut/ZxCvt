@@ -7,7 +7,7 @@
 #include <string>
 
 
-namespace ZQF
+namespace ZQF::Zut
 {
     auto ZxCvt::UTF16LEToMBCS(const std::u16string_view u16Str, const std::size_t nCodePage, const bool isSlotB) -> std::string_view
     {
@@ -107,7 +107,7 @@ namespace ZQF
 #include <charconv>
 
 
-namespace ZQF
+namespace ZQF::Zut
 {
     auto ZxCvt::IConvConv(const void* pSrc, const std::size_t nSrcBytes, const std::size_t nSrcCodePage, const std::size_t nDestCodePage, const std::size_t nDestEleBytes, const bool isSlotB) -> std::size_t
     {
@@ -225,7 +225,7 @@ namespace ZQF
 #endif
 
 
-namespace ZQF
+namespace ZQF::Zut
 {
     auto ZxCvt::UTF8ToUTF16LE(const std::string_view u8Str) -> std::u16string_view
     {
@@ -266,11 +266,11 @@ namespace ZQF
     {
         switch (m_eError)
         {
-        case ZQF::ZxCvt::ERROR_NOT_ALL_CVT: return "not all characters are converted";
-        case ZQF::ZxCvt::ERROR_OUT_OF_MEMORY: return "out of memory";
-        case ZQF::ZxCvt::ERROR_INVALID_ENCODING: return "invalid encoding";
-        case ZQF::ZxCvt::ERROR_CVT_FAILED: return "convert failed";
-        case ZQF::ZxCvt::NOT_ERROR: return "";
+        case ZxCvt::ERROR_NOT_ALL_CVT: return "not all characters are converted";
+        case ZxCvt::ERROR_OUT_OF_MEMORY: return "out of memory";
+        case ZxCvt::ERROR_INVALID_ENCODING: return "invalid encoding";
+        case ZxCvt::ERROR_CVT_FAILED: return "convert failed";
+        case ZxCvt::NOT_ERROR: return "";
         default: return "";
         }
     }
